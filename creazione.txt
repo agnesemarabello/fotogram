@@ -1,0 +1,171 @@
+/* CREAZIONE TABELLE */
+CREATE TABLE UTENTE (
+    username VARCHAR(25) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(50) NOT NULL,
+    timestamp_user TIMESTAMP NOT NULL,
+    immagine_profilo BYTEA NOT NULL,
+    versione_immagine INTEGER NOT NULL DEFAULT 0,
+    ruolo VARCHAR(25) NOT NULL CHECK (ruolo IN ('admin', 'moderatore', 'utente')),
+    limitato BOOLEAN DEFAULT false,
+    PRIMARY KEY (username),
+    CHECK (LENGTH(immagine_profilo) <= 102400)
+);
+CREATE TABLE FOLLOWING_LIST (
+    username_seguito VARCHAR(25) NOT NULL,
+    username_seguace VARCHAR(25) NOT NULL,
+    timestamp_following TIMESTAMP NOT NULL,
+    PRIMARY KEY (username_seguito, username_seguace),
+    FOREIGN KEY (username_seguito) REFERENCES UTENTE (username),
+    FOREIGN KEY (username_seguace) REFERENCES UTENTE (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+);
+CREATE TABLE SESSIONE (
+    username VARCHAR(25) NOT NULL,
+    access_token TEXT UNIQUE NOT NULL,
+    timestamp_inizio TIMESTAMP NOT NULL,
+    timestamp_fine TIMESTAMP,
+    refresh_token TEXT UNIQUE NOT NULL,
+    refresh_scadenza TIMESTAMP NOT NULL,
+    PRIMARY KEY (username, access_token),
+    FOREIGN KEY (username) REFERENCES UTENTE (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+);
+CREATE TABLE ADMIN (
+    username VARCHAR(25) NOT NULL,
+    PRIMARY KEY (username),
+    FOREIGN KEY (username) REFERENCES UTENTE (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+);
+CREATE TABLE MODERATORE (
+    username VARCHAR(25) NOT NULL,
+    timestamp_nomina TIMESTAMP NOT NULL,
+    ADMIN_username VARCHAR(25) NOT NULL,
+    PRIMARY KEY (username),
+    FOREIGN KEY (username) REFERENCES UTENTE (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+    FOREIGN KEY (ADMIN_username) REFERENCES ADMIN (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+);
+CREATE TABLE POST (
+    post_id INTEGER NOT NULL,
+    timestamp_post TIMESTAMP NOT NULL,
+    moderato BOOLEAN DEFAULT false NOT NULL,
+    flaggato BOOLEAN DEFAULT false NOT NULL,
+    testo TEXT,
+    immagine BYTEA,
+    autore VARCHAR(25) NOT NULL,
+    PRIMARY KEY (post_id),
+    FOREIGN KEY (autore) REFERENCES UTENTE (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+    
+    CHECK (NOT (moderato = TRUE AND flaggato = TRUE)),
+    CHECK (LENGTH(immagine) <= 102400)
+);
+CREATE TABLE MI_PIACE (
+    username VARCHAR(25) NOT NULL,
+    post_id INTEGER NOT NULL,
+    timestamp_like TIMESTAMP NOT NULL,
+    PRIMARY KEY (username, post_id),
+    FOREIGN KEY (username) REFERENCES UTENTE (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+    FOREIGN KEY (post_id) REFERENCES POST (post_id)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+);
+CREATE TABLE FLAG (
+    username VARCHAR(25) NOT NULL,
+    post_id INTEGER NOT NULL,
+    motivazione TEXT,
+    timestamp_flag TIMESTAMP NOT NULL,
+    PRIMARY KEY (username, post_id),
+    FOREIGN KEY (username) REFERENCES UTENTE (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+    FOREIGN KEY (post_id) REFERENCES POST (post_id)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+);
+CREATE TABLE MODERAZIONE (
+    post_id INTEGER NOT NULL,
+    timestamp_moderazione TIMESTAMP NOT NULL,
+    ADMIN_username VARCHAR(25),
+    MODERATORE_username VARCHAR(25),
+    PRIMARY KEY (post_id),
+    FOREIGN KEY (post_id) REFERENCES POST (post_id)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+    FOREIGN KEY (ADMIN_username) REFERENCES ADMIN (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+    FOREIGN KEY (MODERATORE_username) REFERENCES MODERATORE (username)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+
+    CHECK (
+        (ADMIN_username IS NOT NULL AND MODERATORE_username IS NULL)
+        OR
+        (ADMIN_username IS NULL AND MODERATORE_username IS NOT NULL)
+    )
+);
+
+/*POPOLAMENTO BASE DI DATI*/
+
+INSERT INTO Utente (username, email, password, timestamp_user, immagine_profilo, versione_immagine, ruolo, limitato) VALUES
+('martina.rossi', 'martina.rossi@gmail.com', 'passMarti01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'admin', FALSE),
+('luca.verdi', 'luca.verdi@hotmail.com', 'lucaMod02!', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'moderatore', FALSE),
+('giulia.bianchi', 'giulia.bianchi@yahoo.com', 'giulia123', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('marco.neri', 'marco.neri@gmail.com', 'marcoNeri89', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('elena.ferrari', 'elena.ferrari@outlook.com', 'elenaF2024', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('lucia.milano', 'lucia.milano@gmail.com', 'luciaMilano01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'admin', FALSE),
+('fabrizio.romano', 'fabrizio.romano@hotmail.com', 'fabrizioRomano01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'moderatore', FALSE),
+('giada.franchi', 'giada.franchi@yahoo.com', 'giada123', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('tommaso.orlando', 'tommaso.orlando@gmail.com', 'tommasoOrlando01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('mirko.luce', 'mirko.luce@gmail.com', 'mirkoLuce01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE);
+
+INSERT INTO ADMIN (username) VALUES
+('martina.rossi'),
+('lucia.milano');
+
+INSERT INTO MODERATORE (username, timestamp_nomina, ADMIN_username) VALUES
+('luca.verdi', CURRENT_TIMESTAMP, 'martina.rossi'),
+('fabrizio.romano', CURRENT_TIMESTAMP, 'lucia.milano');
+
+INSERT INTO POST (post_id, timestamp_post, moderato, flaggato, testo, immagine, username) VALUES
+(1, CURRENT_TIMESTAMP, FALSE, FALSE, 'Primo post di martina!', DECODE('FFD8FFE000104A464946', 'hex'), 'martina.rossi'),
+(2, CURRENT_TIMESTAMP, FALSE, TRUE, 'Post moderato da luca.', DECODE('FFD8FFE000104A464946', 'hex'), 'luca.verdi'),
+(3, CURRENT_TIMESTAMP, FALSE, FALSE, 'Ciao a tutti! Questo è un post di giulia.',  NULL, 'giulia.bianchi'),
+(4, CURRENT_TIMESTAMP, FALSE, TRUE, 'Un post di marco da moderare.', NULL, 'marco.neri'),
+(5, CURRENT_TIMESTAMP, FALSE, FALSE, 'Elena condivide un pensiero.', NULL, 'elena.ferrari');
+
+INSERT INTO FOLLOWING_LIST (username_seguito, username_seguace, timestamp_following) VALUES
+('martina.rossi', 'giulia.bianchi', CURRENT_TIMESTAMP),
+('luca.verdi', 'martina.rossi', CURRENT_TIMESTAMP),
+('giulia.bianchi', 'marco.neri', CURRENT_TIMESTAMP),
+('marco.neri', 'giulia.bianchi', CURRENT_TIMESTAMP),
+('elena.ferrari', 'lucia.milano', CURRENT_TIMESTAMP),
+('lucia.milano', 'fabrizio.romano', CURRENT_TIMESTAMP);
+
+INSERT INTO MI_PIACE (username, post_id, timestamp_like) VALUES
+('giulia.bianchi', 1, CURRENT_TIMESTAMP),
+('marco.neri', 1, CURRENT_TIMESTAMP), 
+('elena.ferrari', 2, CURRENT_TIMESTAMP),
+('lucia.milano', 3, CURRENT_TIMESTAMP),
+('fabrizio.romano', 4, CURRENT_TIMESTAMP),
+('giada.franchi', 5, CURRENT_TIMESTAMP);
+
+INSERT INTO FLAG (username, post_id, motivazione, timestamp_flag) VALUES
+('giulia.bianchi', 2, 'Contenuto inappropriato', CURRENT_TIMESTAMP),
+('marco.neri', 4, 'Spam', CURRENT_TIMESTAMP),
+('elena.ferrari', 5, NULL, CURRENT_TIMESTAMP);
+
+INSERT INTO MODERAZIONE (post_id, timestamp_moderazione, ADMIN_username, MODERATORE_username) VALUES
+(2, CURRENT_TIMESTAMP, 'martina.rossi', NULL),
+(4, CURRENT_TIMESTAMP, NULL, 'fabrizio.romano');
