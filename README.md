@@ -1,7 +1,7 @@
 # PROGETTO FOTOGRAM
 ## Funzionamento:
 Per poter utilizzare i file di progetto è necessaria l'installazione di alcune librerie e l'esecuzione dello swagger, utilizzando i seguenti comandi:
-- npm install
+- 'npm install'
 - node swagger.js
 - node index.js
 Una volta eseguiti, comparià un link per l localhost sulla porta 3000. Per testare lo swagger è necessario creare un server e un batabase al suo interno utilizzando pgadmin.
