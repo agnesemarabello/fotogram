@@ -1,9 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcrypt'); 
-const crypto = require('crypto'); 
-const jwt = require('jsonwebtoken'); 
-const router = express.Router(); 
-const pool = require('./db'); 
+const crypto = require('crypto'); //cripta le password
+const jwt = require('jsonwebtoken'); //utilizzato per autenticazione e autorizzazione nelle API (token JWT)
+const router = express.Router(); //oggeto per definire gli endpoint delle API
+const pool = require('./db'); //importa le connessioni verso il database che sono state definite in db.js
 
 // Configurazione del database
 pool.query('SELECT NOW()', (err, res) => {
@@ -17,23 +17,41 @@ pool.query('SELECT NOW()', (err, res) => {
 // ======================
 // AUTENTICAZIONE
 // ======================
+// Un middleware in Express è una funzione che ha accesso all'oggetto richiesta (req), all'oggetto risposta (res) e alla funzione next() nel ciclo di richiesta-risposta dell'applicazione. 
+// Può eseguire codice, modificare la richiesta o la risposta, terminare il ciclo di richiesta o passare il controllo al middleware successivo usando next().
+// Viene spesso usato per autenticazione, logging, parsing di dati, gestione degli errori, ecc.
+
+/*
+ * Per capire dove si trova un dato nella richiesta:
+ * - req.headers contiene gli header HTTP (es: Authorization, Content-Type, ecc.)
+ * - req.body contiene i dati inviati dal client nel corpo della richiesta (POST/PUT), tipicamente in formato JSON o form.
+ * - req.query contiene i parametri della query string (es: /api?foo=bar)
+ * - req.params contiene i parametri dinamici dell'URL (es: /user/:id)
+ * 
+ * Esempio:
+ *   - Un token di autenticazione si trova di solito in req.headers.authorization
+ *   - I dati di login (username, password) sono spesso in req.body
+ */
 
 async function authMiddleware(req, res, next) {
     const authHeader = req.headers.authorization;
     console.log('Authorization header:', authHeader);
-    
+    // authHeader è nel formato "Bearer <token>"
+    // quindi faccio lo split dello spazio e prendo il secondo elemento)
     const token = authHeader?.split(' ')[1];
     if (!token) {
         return res.status(401).send({ message: 'Token mancante' });
     }
 
     try {
-        const payload = jwt.verify(token, jwt_secret);
+        //verifico che il token sia valido utilizzando la chiave segreta
+        // jwt.verify decodifica il token e verifica la firma
+        const payload = jwt.verify(token, jwt_secret); //contiene i dati inderiti al momento della registrazine, quindi quando viene creato il token
         const session = await pool.query(
             'SELECT username FROM SESSIONE WHERE access_token = $1 AND timestamp_fine IS NULL',
             [token]
         );
-
+        // se dalla query sono state restituite 0 righe, allora c'è un errore
         if (session.rowCount === 0) {
             return res.status(401).send({ message: 'Sessione non valida' });
         }
@@ -43,9 +61,9 @@ async function authMiddleware(req, res, next) {
             access_token: token
         };
 
-        next();
+        next(); //fa continuare il flusso della richiesta
     } catch (err) {
-        if (err.name === 'TokenExpiredError') {
+        if (err.name === 'TokenExpiredError') { //nome dell'errore
             return res.status(401).send({ message: 'Access token scaduto, usa il refresh token' });
         }
         console.error('Errore autenticazione:', err);
@@ -81,7 +99,8 @@ router.post('/register', async (req, res) => {
     if (!username || !email || !password)
         return res.status(400).send({ message: 'Dati mancanti' });
 
-   
+
+    
     const defaultImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAEhUlEQVR4nNVZz28bRRTeC1ScOQAqEkJCgKB/BRJXRIUEKicOjp3gpMhxkzYOJRC1SdPEnjFw4V+AEwevf8RO4jaxPdOkcOBE4B+gohL+sfPGRR701k7qxHbwzo4dGOmTVt6dt9/beTPve8+WZWB8y+ovUiY/plwmCZdZyuQh4fCYMGi64PC4/ZvMus9U5BWcY53n+Iap5wmDq5TDA8ql0gFhwJNMzKCtsRFPVhovEyYpYdDQJd4DBnXKJImXGhdHRvy7ffUM5fAZYVAzRpz3rEiDMPll8ld1wSh5wuENwuHnURGnPYCfNhi8boQ85fDBKL86HexElTK47O/LM/kJ5fBk/ORlO6Q4/E1Zc1KP/INm6LyI01PAk8p72KD3/wHytLMSpALvD0U+fiBeIxz+Om/S9LQTDGpf78ObZ5Jf+kU9a+q0STCp1kpSrZXb14aceIjH+eDQYXDDzws2KqBi20KFM0IFUs4JTGeFiu0IFa+ALyeSHK71D51S46KbETUN3yyCCtonSfdDyHbUF0XhK5QS+/WXehxAeaBlkEs1vwX/Svw05gvgztV0JN5PmGlpm9i2d/JHWNzRDCcG9RMCsK0qvRu6UwYVGCJsBsJ21J2SnhMJLsJPN6+mJI5s9m5Wr5jNa+4HBswljxuCMGh5NRBn+qHTjYmU49rS2MwtWq69YHUqKc8Glu+bcSCQctTyrl4YES4/srDE05n8+Y45B24WdTezJFanTvU8OWbQgZj2aSRtDKHfdSZjMjLlwNI93Y0sD/EE+lNn8sqeuRVY2dPOB49Q/0jNDaRCaf+rELId7YxMGIC2A4iFEnEk1mdYnP5l2/EltDCHC5G/aBrhUqyVQExpyIphy1Kpu7B87IA+1j9Fu3NqTKmQPH06TaeHOoT7f2z5GNRPZaaxXpIrmhSsNBhHHe/jMetkAeX6UyCryihFjHdwtS7VYBDW7KdRMrg28xsyN90y+K8nkhxYKIh0xd94gR2KuUw/w/50DHMrH9QA2js6bEPWM5qcnSko/Bf0gYAfCbxeCDlNStlsqkmgTZaC+ug9ucX81J/pKDDxm8R4+g8/6cYxwueG7rYL65daudEtC3Uw8mxfq9m7b1vAOQHXg31OEwfVhjKyU2l/alBqdyQp1e9iszCBqDRrYtsP23aDJqFvmCuZkdOAUMLzO1EYMDs5sLZ7V3MUkFM6MhnigC/iOfgkPO3L4T9GZ5J9uaLjc3V5H0WVC+3vRSqtdIeW21zm8Z3kZSd4M4uS18njJB45PLcdVuphxE0wGLJ1xl8mJKR963y+m0o5arzSnLT/jxhYshWynNW7ywVSjNbclli0TYyEv3g1nnPq4yIczjfr1onjHMjlmbHUhmnd+DNmNka1GMOW05vKQjZTUc9aoxsJ27VIkJw6CBh0J2Y1WZFPsL92rvmWNaywWxavXCuKH6axT1Wqx2+6ZX40WnO+jBfXK2Ij3G9Fs7dJcQZBIznk4kxWPpjKOxBXCEhKB11PphpzOiT9mN8XB/JaTmE/X3jbx8n8A0x2IRmBkF3AAAAAASUVORK5CYII=';
     let imgBuffer = Buffer.from(defaultImageBase64, 'base64');
 
@@ -119,7 +138,7 @@ router.post('/login', async (req, res) => {
     // #swagger.summary = 'Login utente'
     const { username, password } = req.body;
     if (!username || !password)
-        return res.status(400).send({ message: 'Parameters missing or invalid.' });
+        return res.status(400).send({ message: 'Parametri mancanti o invalidi' });
 
     try {
         const user = await pool.query(
@@ -127,12 +146,12 @@ router.post('/login', async (req, res) => {
             [username]
         );
         if (user.rowCount === 0)
-            return res.status(401).send({ message: 'Wrong credentials.' });
+            return res.status(401).send({ message: 'Credenziali sbagliate' });
 
         const hash = user.rows[0].password;
         const valid = await bcrypt.compare(password, hash);
         if (!valid)
-            return res.status(401).send({ message: 'Wrong credentials.' });
+            return res.status(401).send({ message: 'Credenziali sbagliate' });
 
         const accessPayload = { username };
         const accessToken = jwt.sign(accessPayload, jwt_secret, { expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS });
@@ -163,7 +182,7 @@ router.post('/refresh', async (req, res) => {
     // #swagger.tags = ['Auth']
     // #swagger.summary = 'Rinnova il token'
     if (!req.body || !req.body.refresh_token)
-        return res.status(400).send({ message: 'Parameters missing or invalid.' });
+        return res.status(400).send({ message: 'Parametri mancanti o invalidi' });
 
     let payload;
     try {
@@ -228,7 +247,7 @@ router.post('/logout',  authMiddleware, async (req, res) => {
     // #swagger.tags = ['Auth']
     // #swagger.summary = 'Logout utente'
     // #swagger.security = [{ "bearerAuth": [] }]
-    const authUser = req.user;
+    const authUser = req.user; //username e access_token
     const { username } = req.body;
 
     if (!username || !authUser || !authUser.username || !authUser.access_token) {
@@ -296,7 +315,10 @@ router.get('/user/:username/image', authMiddleware, async (req, res) => {
         return res.send({ immagine_profilo: null });
     }
 
-    res.send({ immagine_profilo: Buffer.from(img).toString('base64'), versione_immagine: versione });
+    res.send({
+         immagine_profilo: Buffer.from(img).toString('base64'),
+         versione_immagine: versione
+    });
 
 });
 
@@ -392,20 +414,19 @@ router.get('/post/feed', authMiddleware, async (req, res) => {
     }
 });
 
-const likes = [];
+
 router.post('/post/:id/like', authMiddleware, async (req, res) => {
     // #swagger.tags = ['Post']
     // #swagger.summary = 'Aggiungi like a un post'
     const id = parseInt(req.params.id);
     const username = req.user?.username; 
 
-    if(!username) return res.status(401).send({ message: 'Utente non autenticato' });
+    if (!username) return res.status(401).send({ message: 'Utente non autenticato' });
 
-     
-        const postResult = await pool.query(
+    const postResult = await pool.query(
             'SELECT * FROM POST WHERE post_id = $1',
             [id]
-        );
+    );
         if (postResult.rowCount === 0) {
             return res.status(404).send({ message: 'Post non trovato' });
         }
@@ -423,14 +444,96 @@ router.post('/post/:id/like', authMiddleware, async (req, res) => {
                 'INSERT INTO MI_PIACE (post_id, username, timestamp_like) VALUES ($1, $2, NOW())',
                 [id, username]
             );
-            const countlikePost = await pool.query(
-                'UPDATE POST SET likes = likes + 1 WHERE post_id = $1 RETURNING likes',
+            const countResult = await pool.query(
+                'SELECT COUNT(*) AS likes FROM MI_PIACE WHERE post_id = $1',
                 [id]
             );
-            res.send({ message: 'Like aggiunto', likes: countlikePost.rows[0].likes });
+            const likes = parseInt(countResult.rows[0].likes, 10);
+            res.send({ message: 'Like aggiunto', likes }); 
+            
         } catch (e) {
             console.error(e);
             res.status(500).send({ message: 'Errore nel aggiungere like' });
+        }
+});
+
+router.post('/post/:id/commento', authMiddleware, async (req, res) => {
+    // #swagger.tags = ['Post']
+    // #swagger.summary = 'Aggiungi commento a un post'
+    const id = parseInt(req.params.id);
+    const username = req.user?.username;
+
+    let { testo } = req.body;
+    if (!testo) {
+        return res.status(400).send({ message: 'Devi fornire il contenuto del commento' });
+    }
+
+    if (!username) return res.status(401).send({ message: 'Utente non autenticato' });
+    const postResult = await pool.query(
+        'SELECT * FROM POST WHERE post_id = $1',
+        [id]
+    );
+    if (postResult.rowCount === 0) {
+        return res.status(404).send({ message: 'Post non trovato' });
+    }
+    try {
+        await pool.query (
+            'INSERT INTO COMMENTO (commento_id, post_id, username, testo, timestamp_commento) VALUES ((SELECT COALESCE(MAX(commento_id), 0) + 1 FROM COMMENTO), $1, $2, $3, NOW()) RETURNING commento_id',
+            [id, username, testo]
+        );
+        const countResult = await pool.query(
+            'SELECT COUNT(*) AS comments FROM COMMENTO WHERE post_id = $1',
+            [id]
+        );
+        const comments = parseInt(countResult.rows[0].comments, 10); 
+        res.send({ message: 'Commento pubblicato'});
+    } catch (e) {
+        console.error(e);
+        res.status(500).send({ message: 'Errore nel aggiungere il commento' });
+    }
+});
+
+router.post('/post/:post_id/likeComment', authMiddleware, async (req, res) => {
+    // #swagger.tags = ['Post']
+    // #swagger.summary = 'Aggiungi like a un commento'
+    const post_id = parseInt(req.params.id);
+    let { commento_id } = req.body;
+    const username_liker = req.user?.username; 
+    let { username_commentatore } = req.body;
+
+    if (!username_liker) return res.status(401).send({ message: 'Utente non autenticato' });
+
+    const commentResult = await pool.query(
+            'SELECT * FROM COMMENTO WHERE post_id = $1 AND commento_id = $2',
+            [post_id, commento_id]
+    );
+    if (commentResult.rowCount === 0) {
+        return res.status(404).send({ message: 'Commento non trovato' });
+    }
+
+        const commentExists = await pool.query(
+            'SELECT 1 FROM LIKE_COMMENTO WHERE commento_id = $1 AND username_liker = $2',
+            [commento_id, username_liker]
+        );
+        if (commentExists.rowCount > 0) {
+            return res.status(400).send({ message: 'Hai già messo like a questo commento' });
+        }
+
+        try {
+            await pool.query(
+                'INSERT INTO LIKE_COMMENTO (post_id, commento_id, username_commentatore, username_liker, timestamp_like_com) VALUES ($1, $2, $3, $4, NOW())',
+                [post_id, commento_id, username_liker, username_commentatore]
+            );
+            const countResult = await pool.query(
+            'SELECT COUNT(*) AS comments FROM LIKE_COMMENTO WHERE commento_id = $1',
+            [commento_id]
+        );
+        const comments = parseInt(countResult.rows[0].comments, 10); 
+        res.send({ message: 'Like al commento aggiunto'}); 
+            
+        } catch (e) {
+            console.error(e);
+            res.status(500).send({ message: 'Errore nel aggiungere like al commento' });
         }
 });
 
@@ -497,22 +600,56 @@ router.delete('/post/:id/like', authMiddleware, async (req, res) => {
     res.send({ message: 'Like rimosso' });
 });
 
+router.delete('/post/:post_id/commento', authMiddleware, async (req, res) => {
+    // #swagger.tags = ['Post']
+    // #swagger.summary = 'Rimuovi commento'
+    const { post_id } = req.params;
+    let { commento_id } = req.body;
+    const username = req.user?.username;
+
+    if (!username) return res.status(401).send({ message: 'Utente non autenticato' });
+
+    const commentExists = await pool.query(
+            'SELECT 1 FROM COMMENTO WHERE post_id = $1 AND commento_id = $2 AND username = $3',
+            [post_id, commento_id, username]
+    );
+    if (commentExists.rowCount === 0) return res.status(404).send({ message: 'Non hai ancora commentato questo post' });
+
+    await pool.query(
+        'DELETE FROM COMMENTO WHERE post_id = $1 AND commento_id = $2 AND username = $3',
+        [post_id, commento_id, req.user.username]
+    );
+    res.send({ message: 'Commento rimosso' })
+});
+
 router.get('/post/:id/like', async (req, res) => {
     // #swagger.tags = ['Post']
     // #swagger.summary = 'Numero like post'
     const { id } = req.params; 
     const result = await pool.query(
-        'SELECT COUNT(*) FROM MI_PIACE WHERE post_id = $1',
+        'SELECT COUNT(*) FROM COMMENTO WHERE post_id = $1',
         [id]
     ); 
-    res.send({ likes: parseInt(result.rows[0].count, 10) });
+    res.send({ comments: parseInt(result.rows[0].count, 10) });
+});
+
+
+router.get('/post/:id/commento', async (req, res) => {
+    // #swagger.tags = ['Post']
+    // #swagger.summary = 'Numero commenti post'
+    const { id } = req.params; 
+    const result = await pool.query(
+        'SELECT COUNT(*) FROM COMMENTO WHERE post_id = $1',
+        [id]
+    ); 
+    res.send({ comments: parseInt(result.rows[0].count, 10) });
 });
 
 // ======================
 // FOLLOW
 // ======================
 
-// Segui un utente
+
 router.post('/user/:username/follow', authMiddleware, async (req, res) => {
     // #swagger.tags = ['Follow']
     // #swagger.summary = 'Segui un utente'
@@ -525,7 +662,7 @@ router.post('/user/:username/follow', authMiddleware, async (req, res) => {
     res.send({ message: `Ora segui ${username}` });
 });
 
-// Smetti di seguire un utente
+
 router.delete('/user/:username/follow', authMiddleware, async (req, res) => {
     // #swagger.tags = ['Follow']
     // #swagger.summary = 'Smetti di seguire un utente'
@@ -537,7 +674,7 @@ router.delete('/user/:username/follow', authMiddleware, async (req, res) => {
     res.send({ message: `Non segui più ${username}` });
 });
 
-// Lista utenti seguiti o numero utenti seguiti
+
 router.get('/user/:username/following', authMiddleware, async (req, res) => {
     // #swagger.tags = ['Follow']
     // #swagger.summary = 'Lista o numero utenti seguiti'
@@ -549,7 +686,7 @@ router.get('/user/:username/following', authMiddleware, async (req, res) => {
     res.send(following.rows.map(r => r.username_seguito));
 });
 
-// Lista follower o numero follower
+
 router.get('/user/:username/follower', authMiddleware, async (req, res) => {
     // #swagger.tags = ['Follow']
     // #swagger.summary = 'Lista o numero follower'

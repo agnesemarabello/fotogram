@@ -63,7 +63,7 @@ CREATE TABLE POST (
     PRIMARY KEY (post_id),
     FOREIGN KEY (autore) REFERENCES UTENTE (username)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION
+    ON UPDATE NO ACTION,
     
     CHECK (NOT (moderato = TRUE AND flaggato = TRUE)),
     CHECK (LENGTH(immagine) <= 102400)
@@ -119,16 +119,16 @@ CREATE TABLE MODERAZIONE (
 /*POPOLAMENTO BASE DI DATI*/
 
 INSERT INTO Utente (username, email, password, timestamp_user, immagine_profilo, versione_immagine, ruolo, limitato) VALUES
-('martina.rossi', 'martina.rossi@gmail.com', 'passMarti01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'admin', FALSE),
-('luca.verdi', 'luca.verdi@hotmail.com', 'lucaMod02!', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'moderatore', FALSE),
-('giulia.bianchi', 'giulia.bianchi@yahoo.com', 'giulia123', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
-('marco.neri', 'marco.neri@gmail.com', 'marcoNeri89', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
-('elena.ferrari', 'elena.ferrari@outlook.com', 'elenaF2024', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
-('lucia.milano', 'lucia.milano@gmail.com', 'luciaMilano01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'admin', FALSE),
-('fabrizio.romano', 'fabrizio.romano@hotmail.com', 'fabrizioRomano01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'moderatore', FALSE),
-('giada.franchi', 'giada.franchi@yahoo.com', 'giada123', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
-('tommaso.orlando', 'tommaso.orlando@gmail.com', 'tommasoOrlando01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
-('mirko.luce', 'mirko.luce@gmail.com', 'mirkoLuce01', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE);
+('martina.rossi', 'martina.rossi@gmail.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'admin', FALSE),
+('luca.verdi', 'luca.verdi@hotmail.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'moderatore', FALSE),
+('giulia.bianchi', 'giulia.bianchi@yahoo.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('marco.neri', 'marco.neri@gmail.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('elena.ferrari', 'elena.ferrari@outlook.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('lucia.milano', 'lucia.milano@gmail.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'admin', FALSE),
+('fabrizio.romano', 'fabrizio.romano@hotmail.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'moderatore', FALSE),
+('giada.franchi', 'giada.franchi@yahoo.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('tommaso.orlando', 'tommaso.orlando@gmail.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE),
+('mirko.luce', 'mirko.luce@gmail.com', '$2b$10$Ck7j4tHJtbqoun2nzRwuRO11djlFmowWQxp8RoctS4/rV66BSiz0.', CURRENT_TIMESTAMP, DECODE('FFD8FFE000104A464946', 'hex'), 0, 'utente', FALSE);
 
 INSERT INTO ADMIN (username) VALUES
 ('martina.rossi'),
@@ -138,7 +138,7 @@ INSERT INTO MODERATORE (username, timestamp_nomina, ADMIN_username) VALUES
 ('luca.verdi', CURRENT_TIMESTAMP, 'martina.rossi'),
 ('fabrizio.romano', CURRENT_TIMESTAMP, 'lucia.milano');
 
-INSERT INTO POST (post_id, timestamp_post, moderato, flaggato, testo, immagine, username) VALUES
+INSERT INTO POST (post_id, timestamp_post, moderato, flaggato, testo, immagine, autore) VALUES
 (1, CURRENT_TIMESTAMP, FALSE, FALSE, 'Primo post di martina!', DECODE('FFD8FFE000104A464946', 'hex'), 'martina.rossi'),
 (2, CURRENT_TIMESTAMP, FALSE, TRUE, 'Post moderato da luca.', DECODE('FFD8FFE000104A464946', 'hex'), 'luca.verdi'),
 (3, CURRENT_TIMESTAMP, FALSE, FALSE, 'Ciao a tutti! Questo è un post di giulia.',  NULL, 'giulia.bianchi'),
