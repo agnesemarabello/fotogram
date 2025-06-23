@@ -1,5 +1,5 @@
-## PROGETTO FOTOGRAM
-# Funzionamento:
+# PROGETTO FOTOGRAM
+## Funzionamento:
 Per poter utilizzare i file di progetto è necessaria l'installazione di alcune librerie e l'esecuzione dello swagger, utilizzando i seguenti comandi:
 - npm install
 - node swagger.js
