@@ -1,4 +1,4 @@
-# PROGETTO FOTOGRAM
+# PROGETTO FOTOGRAM - BASI DI DATI E WEB 24/25
 ## Funzionamento:
 Per poter utilizzare i file di progetto è necessaria l'installazione di alcune librerie e l'esecuzione dello swagger, utilizzando i seguenti comandi:
 - 'npm install'
